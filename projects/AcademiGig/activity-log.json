@@ -252,5 +252,89 @@
       },
       "type": []
     }
+  },
+  {
+    "file": "/Users/abc/code/AcademiGig/ext_test.jsx",
+    "project": "AcademiGig",
+    "timestamp": "2025-02-16T06:00:02.942Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 1
+      },
+      "type": []
+    }
+  },
+  {
+    "file": "/Users/abc/code/AcademiGig/ext_test.jsx",
+    "project": "AcademiGig",
+    "timestamp": "2025-02-16T06:00:04.632Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 1
+      },
+      "type": []
+    }
+  },
+  {
+    "file": "/Users/abc/code/AcademiGig/ext_test.jsx",
+    "project": "AcademiGig",
+    "timestamp": "2025-02-16T06:00:06.314Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 1
+      },
+      "type": []
+    }
   }
 ]
