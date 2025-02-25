@@ -28,5 +28,63 @@
         "CODE_MODIFIED"
       ]
     }
+  },
+  {
+    "file": "d:\\Projects\\AcademiGig-Employer\\test.html",
+    "project": "AcademiGig-Employer",
+    "timestamp": "2025-02-25T07:14:05.936Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 1
+      },
+      "type": []
+    }
+  },
+  {
+    "file": "d:\\Projects\\AcademiGig-Employer\\test.html",
+    "project": "AcademiGig-Employer",
+    "timestamp": "2025-02-25T07:14:07.040Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 10,
+        "modifiedLines": 10,
+        "totalLines": 11
+      },
+      "type": [
+        "CODE_MODIFIED"
+      ]
+    }
   }
 ]
