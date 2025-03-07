@@ -244,5 +244,165 @@
         "LOW_DOCUMENTATION"
       ]
     }
+  },
+  {
+    "file": "d:\\Projects\\aora\\newtest.jsx",
+    "project": "aora",
+    "timestamp": "2025-03-07T09:43:54.772Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 126
+      },
+      "type": [
+        "HIGH_COMPLEXITY",
+        "LOW_TEST_COVERAGE",
+        "LOW_DOCUMENTATION"
+      ]
+    }
+  },
+  {
+    "file": "d:\\Projects\\aora\\newtest.jsx",
+    "project": "aora",
+    "timestamp": "2025-03-07T09:43:54.952Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 126
+      },
+      "type": [
+        "HIGH_COMPLEXITY",
+        "LOW_TEST_COVERAGE",
+        "LOW_DOCUMENTATION"
+      ]
+    }
+  },
+  {
+    "file": "d:\\Projects\\aora\\newtest.jsx",
+    "project": "aora",
+    "timestamp": "2025-03-07T09:43:55.129Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 126
+      },
+      "type": [
+        "HIGH_COMPLEXITY",
+        "LOW_TEST_COVERAGE",
+        "LOW_DOCUMENTATION"
+      ]
+    }
+  },
+  {
+    "file": "d:\\Projects\\aora\\newtest.jsx",
+    "project": "aora",
+    "timestamp": "2025-03-07T09:43:55.298Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 126
+      },
+      "type": [
+        "HIGH_COMPLEXITY",
+        "LOW_TEST_COVERAGE",
+        "LOW_DOCUMENTATION"
+      ]
+    }
+  },
+  {
+    "file": "d:\\Projects\\aora\\newtest.jsx",
+    "project": "aora",
+    "timestamp": "2025-03-07T09:43:55.459Z",
+    "changes": {
+      "functions": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 126
+      },
+      "type": [
+        "HIGH_COMPLEXITY",
+        "LOW_TEST_COVERAGE",
+        "LOW_DOCUMENTATION"
+      ]
+    }
   }
 ]
