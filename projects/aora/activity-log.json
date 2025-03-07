@@ -105,5 +105,55 @@
         "LOW_DOCUMENTATION"
       ]
     }
+  },
+  {
+    "file": "d:\\Projects\\aora\\newtest.jsx",
+    "project": "aora",
+    "timestamp": "2025-03-07T09:40:09.728Z",
+    "changes": {
+      "functions": {
+        "added": [
+          "newtest"
+        ],
+        "modified": [],
+        "removed": [
+          "mapStateToProps",
+          "render"
+        ]
+      },
+      "classes": {
+        "added": [],
+        "modified": [],
+        "removed": [
+          "newtest"
+        ]
+      },
+      "imports": {
+        "added": [
+          "react-native:StyleSheet, Text, View",
+          "react:default"
+        ],
+        "modified": [],
+        "removed": [
+          "react-native:View, Text",
+          "prop-types:default",
+          "react-redux:connect"
+        ]
+      },
+      "lineStats": {
+        "addedLines": -15,
+        "modifiedLines": 15,
+        "totalLines": 14
+      },
+      "type": [
+        "FUNCTION_ADDED",
+        "FUNCTION_REMOVED",
+        "IMPORT_ADDED",
+        "CODE_MODIFIED",
+        "HIGH_COMPLEXITY",
+        "LOW_TEST_COVERAGE",
+        "LOW_DOCUMENTATION"
+      ]
+    }
   }
 ]
