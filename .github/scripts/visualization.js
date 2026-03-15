@@ -64,6 +64,7 @@ function aggregateActivity(allActivity) {
     const activityByDate = new Map();
     const projectStats = new Map();
     const languageStats = new Map();
+    const fileStats = new Map();
 
     for (const entry of allActivity) {
         const dateKey = getDateKey(entry.timestamp);
@@ -75,6 +76,7 @@ function aggregateActivity(allActivity) {
         );
         const projectName = entry.project || 'Unknown';
         const languageName = entry.language || 'plain-text';
+        const fileName = entry.relativeFile || entry.file || 'Unknown file';
 
         activityByDate.set(dateKey, (activityByDate.get(dateKey) || 0) + score);
 
@@ -97,11 +99,22 @@ function aggregateActivity(allActivity) {
         languageEntry.score += score;
         languageEntry.saves += 1;
         languageStats.set(languageName, languageEntry);
+
+        const fileEntry = fileStats.get(fileName) || {
+            name: fileName,
+            score: 0,
+            saves: 0
+        };
+        fileEntry.score += score;
+        fileEntry.saves += 1;
+        fileStats.set(fileName, fileEntry);
     }
 
     const sortedProjects = Array.from(projectStats.values())
         .sort((left, right) => right.score - left.score);
     const sortedLanguages = Array.from(languageStats.values())
+        .sort((left, right) => right.score - left.score);
+    const sortedFiles = Array.from(fileStats.values())
         .sort((left, right) => right.score - left.score);
     const totalLinesChanged = allActivity.reduce((sum, entry) => (
         sum +
@@ -132,9 +145,11 @@ function aggregateActivity(allActivity) {
         activityByDate,
         sortedProjects,
         sortedLanguages,
+        sortedFiles,
         totalSessions: allActivity.length,
         activeDays: activityByDate.size,
         totalLinesChanged,
+        filesTouched: fileStats.size,
         currentStreak,
         today
     };
@@ -154,7 +169,7 @@ function renderSummaryCard(createCanvas, metrics, visualizationsDir) {
     const cards = [
         { label: 'Tracked saves', value: formatCompactNumber(metrics.totalSessions), accent: '#38bdf8' },
         { label: 'Active days', value: formatCompactNumber(metrics.activeDays), accent: '#22c55e' },
-        { label: 'Lines changed', value: formatCompactNumber(metrics.totalLinesChanged), accent: '#f97316' },
+        { label: 'Files touched', value: formatCompactNumber(metrics.filesTouched), accent: '#f97316' },
         { label: 'Current streak', value: `${metrics.currentStreak} day${metrics.currentStreak === 1 ? '' : 's'}`, accent: '#facc15' }
     ];
 
@@ -184,20 +199,25 @@ function renderSummaryCard(createCanvas, metrics, visualizationsDir) {
 
 function renderHeatmap(createCanvas, metrics, visualizationsDir) {
     const canvas = createCanvas(960, 240);
+    canvas.rect(880, 168)
+        .move(40, 56)
+        .radius(18)
+        .fill('#111c35')
+        .stroke({ color: '#22304f', width: 1 });
     canvas.text('Activity Heatmap')
-        .move(40, 24)
+        .move(64, 76)
         .font({ size: 24, family: 'Segoe UI', weight: '700' })
         .fill('#f8fafc');
     canvas.text('Daily activity score across the last 52 weeks.')
-        .move(40, 56)
+        .move(64, 108)
         .font({ size: 12, family: 'Segoe UI' })
         .fill('#94a3b8');
 
-    const palette = ['#0f172a', '#123524', '#166534', '#22c55e', '#86efac'];
+    const palette = ['#243145', '#123524', '#166534', '#22c55e', '#86efac'];
     const cellSize = 12;
     const cellGap = 4;
-    const gridLeft = 72;
-    const gridTop = 96;
+    const gridLeft = 96;
+    const gridTop = 136;
     const weeks = 53;
     const gridStart = new Date(metrics.today);
     gridStart.setUTCDate(metrics.today.getUTCDate() - ((weeks * 7) - 1));
@@ -206,7 +226,7 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
 
     ['Mon', 'Wed', 'Fri'].forEach((label, index) => {
         canvas.text(label)
-            .move(24, gridTop + 2 + (index * 2 * (cellSize + cellGap)))
+            .move(52, gridTop + 2 + (index * 2 * (cellSize + cellGap)))
             .font({ size: 11, family: 'Segoe UI' })
             .fill('#64748b');
     });
@@ -229,31 +249,31 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
 
             if (date.getUTCDate() === 1) {
                 const monthLabel = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-                const monthKey = `${monthLabel}-${weekIndex}`;
-                if (!monthLabels.has(monthKey)) {
-                    monthLabels.add(monthKey);
-                    canvas.text(monthLabel)
-                        .move(x, 78)
-                        .font({ size: 11, family: 'Segoe UI' })
-                        .fill('#64748b');
+                    const monthKey = `${monthLabel}-${weekIndex}`;
+                    if (!monthLabels.has(monthKey)) {
+                        monthLabels.add(monthKey);
+                        canvas.text(monthLabel)
+                            .move(x, 118)
+                            .font({ size: 11, family: 'Segoe UI' })
+                            .fill('#64748b');
+                    }
                 }
             }
-        }
     }
 
     canvas.text('Less')
-        .move(780, 212)
+        .move(760, 200)
         .font({ size: 11, family: 'Segoe UI' })
         .fill('#94a3b8');
     palette.forEach((color, index) => {
         canvas.rect(12, 12)
-            .move(814 + (index * 18), 210)
+            .move(794 + (index * 18), 198)
             .radius(4)
             .fill(color)
             .stroke({ color: '#1e293b', width: 1 });
     });
     canvas.text('More')
-        .move(910, 212)
+        .move(890, 200)
         .font({ size: 11, family: 'Segoe UI' })
         .fill('#94a3b8');
 
@@ -261,33 +281,33 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
 }
 
 function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
-    const canvas = createCanvas(960, 420);
+    const panelHeight = 284;
+    const canvas = createCanvas(960, 384);
+    canvas.rect(560, panelHeight)
+        .move(40, 72)
+        .radius(18)
+        .fill('#111c35')
+        .stroke({ color: '#22304f', width: 1 });
+    canvas.rect(280, panelHeight)
+        .move(640, 72)
+        .radius(18)
+        .fill('#111c35')
+        .stroke({ color: '#22304f', width: 1 });
     canvas.text('Project Progress')
         .move(40, 24)
         .font({ size: 24, family: 'Segoe UI', weight: '700' })
         .fill('#f8fafc');
-    canvas.text('Top projects by activity score, plus your most-used languages.')
+    canvas.text('Top projects by activity score and the files you touched most often.')
         .move(40, 56)
         .font({ size: 12, family: 'Segoe UI' })
         .fill('#94a3b8');
 
-    canvas.rect(560, 260)
-        .move(40, 100)
-        .radius(16)
-        .fill('#111c35')
-        .stroke({ color: '#1e293b', width: 1 });
-    canvas.rect(280, 260)
-        .move(640, 100)
-        .radius(16)
-        .fill('#111c35')
-        .stroke({ color: '#1e293b', width: 1 });
-
     canvas.text('Top projects')
-        .move(64, 122)
+        .move(64, 96)
         .font({ size: 16, family: 'Segoe UI', weight: '700' })
         .fill('#f8fafc');
-    canvas.text('Top languages')
-        .move(664, 122)
+    canvas.text('Top files')
+        .move(664, 96)
         .font({ size: 16, family: 'Segoe UI', weight: '700' })
         .fill('#f8fafc');
 
@@ -296,12 +316,12 @@ function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
 
     if (topProjects.length === 0) {
         canvas.text('No activity yet. Save files locally to populate this chart.')
-            .move(64, 176)
+            .move(64, 152)
             .font({ size: 14, family: 'Segoe UI' })
             .fill('#94a3b8');
     } else {
         topProjects.forEach((project, index) => {
-            const y = 154 + (index * 34);
+            const y = 128 + (index * 42);
             const barWidth = (project.score / maxProjectScore) * 360;
 
             canvas.text(trimLabel(project.name, 24))
@@ -309,52 +329,52 @@ function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
                 .font({ size: 13, family: 'Segoe UI', weight: '600' })
                 .fill('#e2e8f0');
             canvas.text(`${project.saves} saves`)
-                .move(460, y)
+                .move(470, y)
                 .font({ size: 12, family: 'Segoe UI' })
                 .fill('#94a3b8');
 
             canvas.rect(420, 10)
-                .move(64, y + 18)
+                .move(64, y + 24)
                 .radius(5)
                 .fill('#0f172a');
             canvas.rect(Math.max(barWidth, 10), 10)
-                .move(64, y + 18)
+                .move(64, y + 24)
                 .radius(5)
                 .fill('#38bdf8');
             canvas.text(`${formatCompactNumber(project.score)} score • ${formatCompactNumber(project.lines)} lines`)
-                .move(64, y + 30)
+                .move(64, y + 38)
                 .font({ size: 11, family: 'Segoe UI' })
                 .fill('#64748b');
         });
     }
 
-    const topLanguages = metrics.sortedLanguages.slice(0, 5);
-    const maxLanguageScore = Math.max(...topLanguages.map(language => language.score), 1);
+    const topFiles = metrics.sortedFiles.slice(0, 6);
+    const maxFileScore = Math.max(...topFiles.map(file => file.score), 1);
 
-    if (topLanguages.length === 0) {
-        canvas.text('Language data appears after the first tracked saves.')
-            .move(664, 176)
+    if (topFiles.length === 0) {
+        canvas.text('File activity appears after the first tracked saves.')
+            .move(664, 152)
             .font({ size: 13, family: 'Segoe UI' })
             .fill('#94a3b8');
     } else {
-        topLanguages.forEach((language, index) => {
-            const y = 154 + (index * 38);
-            const barWidth = (language.score / maxLanguageScore) * 180;
+        topFiles.forEach((file, index) => {
+            const y = 128 + (index * 42);
+            const barWidth = (file.score / maxFileScore) * 180;
 
-            canvas.text(trimLabel(language.name, 18))
+            canvas.text(trimLabel(file.name, 26))
                 .move(664, y)
                 .font({ size: 13, family: 'Segoe UI', weight: '600' })
                 .fill('#e2e8f0');
             canvas.rect(200, 10)
-                .move(664, y + 18)
+                .move(664, y + 24)
                 .radius(5)
                 .fill('#0f172a');
             canvas.rect(Math.max(barWidth, 10), 10)
-                .move(664, y + 18)
+                .move(664, y + 24)
                 .radius(5)
-                .fill('#22c55e');
-            canvas.text(`${language.saves} saves`)
-                .move(664, y + 30)
+                .fill('#8b5cf6');
+            canvas.text(`${file.saves} saves • ${formatCompactNumber(file.score)} score`)
+                .move(664, y + 38)
                 .font({ size: 11, family: 'Segoe UI' })
                 .fill('#64748b');
         });
