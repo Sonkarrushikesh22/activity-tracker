@@ -3407,5 +3407,116 @@
         "LINES_ADDED"
       ]
     }
+  },
+  {
+    "file": "d:\\project\\activity-tracker\\app.js",
+    "relativeFile": "app.js",
+    "project": "activity-tracker",
+    "language": "javascript",
+    "timestamp": "2026-03-15T15:13:24.602Z",
+    "metrics": {
+      "addedLines": 1842,
+      "removedLines": 0,
+      "modifiedLines": 0,
+      "totalLines": 1843,
+      "structuralChanges": 66,
+      "activityScore": 2040
+    },
+    "changes": {
+      "functions": {
+        "added": [
+          "enrichTrip",
+          "loadCart",
+          "loadPromo",
+          "loadFavorites",
+          "loadHistory",
+          "loadProfile",
+          "loadCurrency",
+          "loadAlerts",
+          "loadRecentViewed",
+          "loadLoyaltyPoints",
+          "loadLastReferral",
+          "saveState",
+          "toCurrency",
+          "formatCurrency",
+          "getProductById",
+          "normalizeCart",
+          "getFilteredProducts",
+          "setMessage",
+          "showToast",
+          "rememberViewedTrip",
+          "renderSavedPage",
+          "renderRecentViewed",
+          "renderPriceAlertControls",
+          "checkPriceAlerts",
+          "renderAvailabilityCalendar",
+          "renderDashboard",
+          "calculatePlannerEstimate",
+          "renderPlannerPage",
+          "getMatchScore",
+          "renderMatchResults",
+          "calculateGroupSplit",
+          "renderSplitterPage",
+          "buildTimeline",
+          "renderTimelinePage",
+          "hydrateProfile",
+          "startCampaignCountdown",
+          "tick",
+          "renderProducts",
+          "openTripModal",
+          "closeTripModal",
+          "toggleCompare",
+          "renderCompareBar",
+          "openCompareModal",
+          "clearCart",
+          "renderBookingHistory",
+          "openHistoryModal",
+          "animateHeroStats",
+          "toggleFavorite",
+          "updateQuantity",
+          "getOrderSummary",
+          "renderCart",
+          "renderPromoState",
+          "renderAll",
+          "applyPromo",
+          "validateCheckout",
+          "placeOrder",
+          "populateCategoryFilter",
+          "registerEvents",
+          "init",
+          "navigateTo",
+          "initRouter",
+          "handleHash",
+          "renderDestinationsPage",
+          "renderDealsPage",
+          "renderMiniCards"
+        ],
+        "modified": [],
+        "removed": []
+      },
+      "classes": {
+        "added": [
+          "cuisine"
+        ],
+        "modified": [],
+        "removed": []
+      },
+      "imports": {
+        "added": [],
+        "modified": [],
+        "removed": []
+      },
+      "lineStats": {
+        "addedLines": 1842,
+        "removedLines": 0,
+        "modifiedLines": 0,
+        "totalLines": 1843
+      },
+      "type": [
+        "FUNCTION_ADDED",
+        "CLASS_ADDED",
+        "LINES_ADDED"
+      ]
+    }
   }
 ]
