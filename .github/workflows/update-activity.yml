@@ -1,8 +1,16 @@
 name: Update Activity Visualizations
 
+concurrency:
+  group: activity-visualizations
+  cancel-in-progress: true
+
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'projects/**'
+      - '.github/scripts/visualization.js'
+      - '.github/workflows/update-activity.yml'
   schedule:
     - cron: '*/30 * * * *'
   workflow_dispatch:
@@ -28,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           npm init -y
-          npm install @svgdotjs/svg.js@3.2.0 svgdom@0.1.19
+          npm install --no-save @svgdotjs/svg.js@3.2.0 svgdom@0.1.19
 
       - name: Generate visualizations
         run: node .github/scripts/visualization.js
@@ -40,5 +48,6 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add visualizations/
-          git commit -m "Update visualizations" || echo "No changes"
+          git diff --cached --quiet && echo "No visualization changes" && exit 0
+          git commit -m "Update visualizations"
           git push
