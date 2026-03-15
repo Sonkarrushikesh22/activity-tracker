@@ -29,6 +29,8 @@ async function updateProfile() {
             '',
             `Data source: https://github.com/${username}/${ACTIVITY_REPO}`,
             '',
+            `![Activity Summary](${visualizationsUrl}/summary-card.svg)`,
+            '',
             '### Activity Heatmap',
             `![Activity Heatmap](${visualizationsUrl}/heatmap.svg)`,
             '',
