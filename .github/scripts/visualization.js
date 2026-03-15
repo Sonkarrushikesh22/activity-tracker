@@ -19,6 +19,39 @@ function trimLabel(label, maxLength = 18) {
         : `${label.slice(0, maxLength - 1)}...`;
 }
 
+function addText(canvas, text, x, y, options = {}) {
+    const {
+        size = 12,
+        family = 'Segoe UI',
+        weight = '400',
+        fill = '#f8fafc'
+    } = options;
+
+    return canvas.plain(text)
+        .move(x, y)
+        .font({ size, family, weight })
+        .fill(fill);
+}
+
+function drawMetricPill(canvas, x, y, text, options = {}) {
+    const {
+        width = 86,
+        fill = '#18243b',
+        textColor = '#cbd5e1'
+    } = options;
+
+    canvas.rect(width, 22)
+        .move(x, y)
+        .radius(11)
+        .fill(fill)
+        .stroke({ color: '#22304f', width: 1 });
+    addText(canvas, text, x + 12, y + 5, {
+        size: 11,
+        weight: '600',
+        fill: textColor
+    });
+}
+
 function createCanvasFactory(createSVGWindow, SVG, registerWindow) {
     return (width, height) => {
         const window = createSVGWindow();
@@ -157,19 +190,19 @@ function aggregateActivity(allActivity) {
 
 function renderSummaryCard(createCanvas, metrics, visualizationsDir) {
     const canvas = createCanvas(960, 160);
-    canvas.text('Coding Activity Snapshot')
-        .move(40, 24)
-        .font({ size: 24, family: 'Segoe UI', weight: '700' })
-        .fill('#f8fafc');
-    canvas.text('A compact overview generated from local VS Code activity logs.')
-        .move(40, 56)
-        .font({ size: 12, family: 'Segoe UI' })
-        .fill('#94a3b8');
+    addText(canvas, 'Coding Activity Snapshot', 40, 24, {
+        size: 24,
+        weight: '700'
+    });
+    addText(canvas, 'A compact overview generated from local VS Code activity logs.', 40, 56, {
+        size: 12,
+        fill: '#94a3b8'
+    });
 
     const cards = [
         { label: 'Tracked saves', value: formatCompactNumber(metrics.totalSessions), accent: '#38bdf8' },
         { label: 'Active days', value: formatCompactNumber(metrics.activeDays), accent: '#22c55e' },
-        { label: 'Files touched', value: formatCompactNumber(metrics.filesTouched), accent: '#f97316' },
+        { label: 'Lines changed', value: formatCompactNumber(metrics.totalLinesChanged), accent: '#f97316' },
         { label: 'Current streak', value: `${metrics.currentStreak} day${metrics.currentStreak === 1 ? '' : 's'}`, accent: '#facc15' }
     ];
 
@@ -184,40 +217,40 @@ function renderSummaryCard(createCanvas, metrics, visualizationsDir) {
             .move(x + 16, 98)
             .radius(3)
             .fill(card.accent);
-        canvas.text(card.value)
-            .move(x + 34, 94)
-            .font({ size: 22, family: 'Segoe UI', weight: '700' })
-            .fill('#f8fafc');
-        canvas.text(card.label)
-            .move(x + 34, 124)
-            .font({ size: 12, family: 'Segoe UI' })
-            .fill('#94a3b8');
+        addText(canvas, card.value, x + 34, 94, {
+            size: 22,
+            weight: '700'
+        });
+        addText(canvas, card.label, x + 34, 124, {
+            size: 12,
+            fill: '#94a3b8'
+        });
     });
 
     fs.writeFileSync(path.join(visualizationsDir, 'summary-card.svg'), canvas.svg());
 }
 
 function renderHeatmap(createCanvas, metrics, visualizationsDir) {
-    const canvas = createCanvas(960, 240);
-    canvas.rect(880, 168)
+    const canvas = createCanvas(960, 272);
+    canvas.rect(880, 200)
         .move(40, 56)
         .radius(18)
         .fill('#111c35')
         .stroke({ color: '#22304f', width: 1 });
-    canvas.text('Activity Heatmap')
-        .move(64, 76)
-        .font({ size: 24, family: 'Segoe UI', weight: '700' })
-        .fill('#f8fafc');
-    canvas.text('Daily activity score across the last 52 weeks.')
-        .move(64, 108)
-        .font({ size: 12, family: 'Segoe UI' })
-        .fill('#94a3b8');
+    addText(canvas, 'Activity Heatmap', 64, 76, {
+        size: 24,
+        weight: '700'
+    });
+    addText(canvas, 'Daily activity score across the last 52 weeks.', 64, 108, {
+        size: 12,
+        fill: '#94a3b8'
+    });
 
     const palette = ['#243145', '#123524', '#166534', '#22c55e', '#86efac'];
     const cellSize = 12;
     const cellGap = 4;
     const gridLeft = 96;
-    const gridTop = 136;
+    const gridTop = 132;
     const weeks = 53;
     const gridStart = new Date(metrics.today);
     gridStart.setUTCDate(metrics.today.getUTCDate() - ((weeks * 7) - 1));
@@ -225,10 +258,10 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
     const monthLabels = new Set();
 
     ['Mon', 'Wed', 'Fri'].forEach((label, index) => {
-        canvas.text(label)
-            .move(52, gridTop + 2 + (index * 2 * (cellSize + cellGap)))
-            .font({ size: 11, family: 'Segoe UI' })
-            .fill('#64748b');
+        addText(canvas, label, 52, gridTop + 2 + (index * 2 * (cellSize + cellGap)), {
+            size: 11,
+            fill: '#64748b'
+        });
     });
 
     for (let weekIndex = 0; weekIndex < weeks; weekIndex += 1) {
@@ -252,37 +285,37 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
                     const monthKey = `${monthLabel}-${weekIndex}`;
                     if (!monthLabels.has(monthKey)) {
                         monthLabels.add(monthKey);
-                        canvas.text(monthLabel)
-                            .move(x, 118)
-                            .font({ size: 11, family: 'Segoe UI' })
-                            .fill('#64748b');
+                        addText(canvas, monthLabel, x, 114, {
+                            size: 11,
+                            fill: '#64748b'
+                        });
                     }
                 }
             }
     }
 
-    canvas.text('Less')
-        .move(760, 200)
-        .font({ size: 11, family: 'Segoe UI' })
-        .fill('#94a3b8');
+    addText(canvas, 'Less', 760, 228, {
+        size: 11,
+        fill: '#94a3b8'
+    });
     palette.forEach((color, index) => {
         canvas.rect(12, 12)
-            .move(794 + (index * 18), 198)
+            .move(794 + (index * 18), 226)
             .radius(4)
             .fill(color)
             .stroke({ color: '#1e293b', width: 1 });
     });
-    canvas.text('More')
-        .move(890, 200)
-        .font({ size: 11, family: 'Segoe UI' })
-        .fill('#94a3b8');
+    addText(canvas, 'More', 890, 228, {
+        size: 11,
+        fill: '#94a3b8'
+    });
 
     fs.writeFileSync(path.join(visualizationsDir, 'heatmap.svg'), canvas.svg());
 }
 
 function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
-    const panelHeight = 284;
-    const canvas = createCanvas(960, 384);
+    const panelHeight = 300;
+    const canvas = createCanvas(960, 400);
     canvas.rect(560, panelHeight)
         .move(40, 72)
         .radius(18)
@@ -293,45 +326,51 @@ function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
         .radius(18)
         .fill('#111c35')
         .stroke({ color: '#22304f', width: 1 });
-    canvas.text('Project Progress')
-        .move(40, 24)
-        .font({ size: 24, family: 'Segoe UI', weight: '700' })
-        .fill('#f8fafc');
-    canvas.text('Top projects by activity score and the files you touched most often.')
-        .move(40, 56)
-        .font({ size: 12, family: 'Segoe UI' })
-        .fill('#94a3b8');
+    addText(canvas, 'Project Progress', 40, 24, {
+        size: 24,
+        weight: '700'
+    });
+    addText(canvas, 'Top projects by activity score and the files you touched most often.', 40, 56, {
+        size: 12,
+        fill: '#94a3b8'
+    });
 
-    canvas.text('Top projects')
-        .move(64, 96)
-        .font({ size: 16, family: 'Segoe UI', weight: '700' })
-        .fill('#f8fafc');
-    canvas.text('Top files')
-        .move(664, 96)
-        .font({ size: 16, family: 'Segoe UI', weight: '700' })
-        .fill('#f8fafc');
+    addText(canvas, 'Top projects', 64, 96, {
+        size: 16,
+        weight: '700'
+    });
+    addText(canvas, 'Recent files', 664, 96, {
+        size: 16,
+        weight: '700'
+    });
 
-    const topProjects = metrics.sortedProjects.slice(0, 6);
+    const topProjects = metrics.sortedProjects.slice(0, 4);
     const maxProjectScore = Math.max(...topProjects.map(project => project.score), 1);
 
     if (topProjects.length === 0) {
-        canvas.text('No activity yet. Save files locally to populate this chart.')
-            .move(64, 152)
-            .font({ size: 14, family: 'Segoe UI' })
-            .fill('#94a3b8');
+        addText(canvas, 'No activity yet. Save files locally to populate this chart.', 64, 152, {
+            size: 14,
+            fill: '#94a3b8'
+        });
     } else {
         topProjects.forEach((project, index) => {
-            const y = 128 + (index * 42);
+            const y = 126 + (index * 64);
             const barWidth = (project.score / maxProjectScore) * 360;
 
-            canvas.text(trimLabel(project.name, 24))
-                .move(64, y)
-                .font({ size: 13, family: 'Segoe UI', weight: '600' })
-                .fill('#e2e8f0');
-            canvas.text(`${project.saves} saves`)
-                .move(470, y)
-                .font({ size: 12, family: 'Segoe UI' })
-                .fill('#94a3b8');
+            canvas.rect(472, 50)
+                .move(64, y - 6)
+                .radius(12)
+                .fill('#15233d');
+
+            addText(canvas, trimLabel(project.name, 24), 64, y, {
+                size: 13,
+                weight: '600',
+                fill: '#e2e8f0'
+            });
+            drawMetricPill(canvas, 438, y - 2, `${project.saves} saves`, {
+                width: 86,
+                fill: '#18243b'
+            });
 
             canvas.rect(420, 10)
                 .move(64, y + 24)
@@ -341,30 +380,40 @@ function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
                 .move(64, y + 24)
                 .radius(5)
                 .fill('#38bdf8');
-            canvas.text(`${formatCompactNumber(project.score)} score • ${formatCompactNumber(project.lines)} lines`)
-                .move(64, y + 38)
-                .font({ size: 11, family: 'Segoe UI' })
-                .fill('#64748b');
+            addText(canvas, `${formatCompactNumber(project.score)} score • ${formatCompactNumber(project.lines)} lines`, 64, y + 40, {
+                size: 11,
+                fill: '#64748b'
+            });
         });
     }
 
-    const topFiles = metrics.sortedFiles.slice(0, 6);
+    const topFiles = metrics.sortedFiles.slice(0, 4);
     const maxFileScore = Math.max(...topFiles.map(file => file.score), 1);
 
     if (topFiles.length === 0) {
-        canvas.text('File activity appears after the first tracked saves.')
-            .move(664, 152)
-            .font({ size: 13, family: 'Segoe UI' })
-            .fill('#94a3b8');
+        addText(canvas, 'File activity appears after the first tracked saves.', 664, 152, {
+            size: 13,
+            fill: '#94a3b8'
+        });
     } else {
         topFiles.forEach((file, index) => {
-            const y = 128 + (index * 42);
+            const y = 126 + (index * 64);
             const barWidth = (file.score / maxFileScore) * 180;
 
-            canvas.text(trimLabel(file.name, 26))
-                .move(664, y)
-                .font({ size: 13, family: 'Segoe UI', weight: '600' })
-                .fill('#e2e8f0');
+            canvas.rect(212, 50)
+                .move(664, y - 6)
+                .radius(12)
+                .fill('#15233d');
+
+            addText(canvas, trimLabel(file.name, 16), 664, y, {
+                size: 13,
+                weight: '600',
+                fill: '#e2e8f0'
+            });
+            drawMetricPill(canvas, 776, y - 2, `${file.saves} saves`, {
+                width: 82,
+                fill: '#20193f'
+            });
             canvas.rect(200, 10)
                 .move(664, y + 24)
                 .radius(5)
@@ -373,10 +422,10 @@ function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
                 .move(664, y + 24)
                 .radius(5)
                 .fill('#8b5cf6');
-            canvas.text(`${file.saves} saves • ${formatCompactNumber(file.score)} score`)
-                .move(664, y + 38)
-                .font({ size: 11, family: 'Segoe UI' })
-                .fill('#64748b');
+            addText(canvas, `${formatCompactNumber(file.score)} score`, 664, y + 40, {
+                size: 11,
+                fill: '#64748b'
+            });
         });
     }
 
