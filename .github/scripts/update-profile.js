@@ -17,6 +17,7 @@ async function updateProfile() {
         const username = await getAuthenticatedUsername(process.env.GITHUB_TOKEN);
         console.log(`Authenticated username: ${username}`);
         
+        const cacheBust = Date.now();
         const visualizationsUrl = `https://raw.githubusercontent.com/${username}/${ACTIVITY_REPO}/main/visualizations`;
         console.log(`Visualizations URL: ${visualizationsUrl}`);
         
@@ -29,13 +30,13 @@ async function updateProfile() {
             '',
             `Data source: https://github.com/${username}/${ACTIVITY_REPO}`,
             '',
-            `![Activity Summary](${visualizationsUrl}/summary-card.svg)`,
+            `![Activity Summary](${visualizationsUrl}/summary-card.svg?ts=${cacheBust})`,
             '',
             '### Activity Heatmap',
-            `![Activity Heatmap](${visualizationsUrl}/heatmap.svg)`,
+            `![Activity Heatmap](${visualizationsUrl}/heatmap.svg?ts=${cacheBust})`,
             '',
             '### Project Progress',
-            `![Project Activity](${visualizationsUrl}/activity-chart.svg)`,
+            `![Project Activity](${visualizationsUrl}/activity-chart.svg?ts=${cacheBust})`,
             '',
             `Last setup sync: ${new Date().toUTCString()}`
         ].join('\n');
