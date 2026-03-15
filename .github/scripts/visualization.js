@@ -19,6 +19,22 @@ function trimLabel(label, maxLength = 18) {
         : `${label.slice(0, maxLength - 1)}...`;
 }
 
+function getFileDisplayName(label) {
+    const normalized = label.replace(/\\/g, '/');
+    return path.posix.basename(normalized) || normalized;
+}
+
+function getFileContext(label) {
+    const normalized = label.replace(/\\/g, '/');
+    const parts = normalized.split('/');
+
+    if (parts.length <= 1) {
+        return '';
+    }
+
+    return trimLabel(parts.slice(0, -1).join('/'), 24);
+}
+
 function addText(canvas, text, x, y, options = {}) {
     const {
         size = 12,
@@ -136,10 +152,12 @@ function aggregateActivity(allActivity) {
         const fileEntry = fileStats.get(fileName) || {
             name: fileName,
             score: 0,
-            saves: 0
+            saves: 0,
+            lines: 0
         };
         fileEntry.score += score;
         fileEntry.saves += 1;
+        fileEntry.lines += lineImpact;
         fileStats.set(fileName, fileEntry);
     }
 
@@ -231,27 +249,27 @@ function renderSummaryCard(createCanvas, metrics, visualizationsDir) {
 }
 
 function renderHeatmap(createCanvas, metrics, visualizationsDir) {
-    const canvas = createCanvas(960, 272);
-    canvas.rect(880, 200)
-        .move(40, 56)
+    const canvas = createCanvas(960, 260);
+    canvas.rect(880, 196)
+        .move(40, 32)
         .radius(18)
         .fill('#111c35')
         .stroke({ color: '#22304f', width: 1 });
-    addText(canvas, 'Activity Heatmap', 64, 76, {
-        size: 24,
+    addText(canvas, 'Activity Heatmap', 64, 52, {
+        size: 22,
         weight: '700'
     });
-    addText(canvas, 'Daily activity score across the last 52 weeks.', 64, 108, {
+    addText(canvas, 'Daily activity across the last 52 weeks.', 64, 82, {
         size: 12,
         fill: '#94a3b8'
     });
 
     const palette = ['#243145', '#123524', '#166534', '#22c55e', '#86efac'];
-    const cellSize = 12;
-    const cellGap = 4;
+    const cellSize = 10;
+    const cellGap = 3;
     const gridLeft = 96;
-    const gridTop = 132;
-    const weeks = 53;
+    const gridTop = 108;
+    const weeks = 52;
     const gridStart = new Date(metrics.today);
     gridStart.setUTCDate(metrics.today.getUTCDate() - ((weeks * 7) - 1));
     const maxDayScore = Math.max(...metrics.activityByDate.values(), 1);
@@ -285,7 +303,7 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
                     const monthKey = `${monthLabel}-${weekIndex}`;
                     if (!monthLabels.has(monthKey)) {
                         monthLabels.add(monthKey);
-                        addText(canvas, monthLabel, x, 114, {
+                        addText(canvas, monthLabel, x, 90, {
                             size: 11,
                             fill: '#64748b'
                         });
@@ -294,18 +312,18 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
             }
     }
 
-    addText(canvas, 'Less', 760, 228, {
+    addText(canvas, 'Less', 720, 52, {
         size: 11,
         fill: '#94a3b8'
     });
     palette.forEach((color, index) => {
         canvas.rect(12, 12)
-            .move(794 + (index * 18), 226)
+            .move(754 + (index * 18), 50)
             .radius(4)
             .fill(color)
             .stroke({ color: '#1e293b', width: 1 });
     });
-    addText(canvas, 'More', 890, 228, {
+    addText(canvas, 'More', 850, 52, {
         size: 11,
         fill: '#94a3b8'
     });
@@ -314,65 +332,59 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
 }
 
 function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
-    const panelHeight = 300;
-    const canvas = createCanvas(960, 400);
-    canvas.rect(560, panelHeight)
-        .move(40, 72)
+    const canvas = createCanvas(960, 620);
+    canvas.rect(880, 556)
+        .move(40, 32)
         .radius(18)
         .fill('#111c35')
         .stroke({ color: '#22304f', width: 1 });
-    canvas.rect(280, panelHeight)
-        .move(640, 72)
-        .radius(18)
-        .fill('#111c35')
-        .stroke({ color: '#22304f', width: 1 });
-    addText(canvas, 'Project Progress', 40, 24, {
-        size: 24,
+    addText(canvas, 'Project Progress', 64, 52, {
+        size: 22,
         weight: '700'
     });
-    addText(canvas, 'Top projects by activity score and the files you touched most often.', 40, 56, {
+    addText(canvas, 'Top projects and the files absorbing most of your recent effort.', 64, 82, {
         size: 12,
         fill: '#94a3b8'
     });
 
-    addText(canvas, 'Top projects', 64, 96, {
+    addText(canvas, 'Top projects', 64, 120, {
         size: 16,
         weight: '700'
     });
-    addText(canvas, 'Recent files', 664, 96, {
+    addText(canvas, 'Recent files', 64, 372, {
         size: 16,
         weight: '700'
     });
 
-    const topProjects = metrics.sortedProjects.slice(0, 4);
+    const topProjects = metrics.sortedProjects.slice(0, 3);
     const maxProjectScore = Math.max(...topProjects.map(project => project.score), 1);
 
     if (topProjects.length === 0) {
-        addText(canvas, 'No activity yet. Save files locally to populate this chart.', 64, 152, {
+        addText(canvas, 'No activity yet. Save files locally to populate this chart.', 64, 160, {
             size: 14,
             fill: '#94a3b8'
         });
     } else {
         topProjects.forEach((project, index) => {
-            const y = 126 + (index * 64);
-            const barWidth = (project.score / maxProjectScore) * 360;
+            const y = 138 + (index * 72);
+            const barWidth = (project.score / maxProjectScore) * 640;
 
-            canvas.rect(472, 50)
+            canvas.rect(832, 56)
                 .move(64, y - 6)
                 .radius(12)
                 .fill('#15233d');
 
             addText(canvas, trimLabel(project.name, 24), 64, y, {
-                size: 13,
+                size: 14,
                 weight: '600',
                 fill: '#e2e8f0'
             });
-            drawMetricPill(canvas, 438, y - 2, `${project.saves} saves`, {
-                width: 86,
+            drawMetricPill(canvas, 792, y - 2, `${project.saves} saves`, {
+                width: 88,
                 fill: '#18243b'
             });
 
-            canvas.rect(420, 10)
+            canvas.rect(700, 10)
                 .move(64, y + 24)
                 .radius(5)
                 .fill('#0f172a');
@@ -387,42 +399,50 @@ function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
         });
     }
 
-    const topFiles = metrics.sortedFiles.slice(0, 4);
+    const topFiles = metrics.sortedFiles.slice(0, 3);
     const maxFileScore = Math.max(...topFiles.map(file => file.score), 1);
 
     if (topFiles.length === 0) {
-        addText(canvas, 'File activity appears after the first tracked saves.', 664, 152, {
+        addText(canvas, 'File activity appears after the first tracked saves.', 64, 412, {
             size: 13,
             fill: '#94a3b8'
         });
     } else {
         topFiles.forEach((file, index) => {
-            const y = 126 + (index * 64);
-            const barWidth = (file.score / maxFileScore) * 180;
+            const y = 390 + (index * 72);
+            const barWidth = (file.score / maxFileScore) * 640;
+            const fileName = trimLabel(getFileDisplayName(file.name), 18);
+            const fileContext = getFileContext(file.name);
 
-            canvas.rect(212, 50)
-                .move(664, y - 6)
+            canvas.rect(832, 56)
+                .move(64, y - 6)
                 .radius(12)
                 .fill('#15233d');
 
-            addText(canvas, trimLabel(file.name, 16), 664, y, {
-                size: 13,
+            addText(canvas, fileName, 64, y, {
+                size: 14,
                 weight: '600',
                 fill: '#e2e8f0'
             });
-            drawMetricPill(canvas, 776, y - 2, `${file.saves} saves`, {
+            drawMetricPill(canvas, 792, y - 2, `${file.saves} saves`, {
                 width: 82,
                 fill: '#20193f'
             });
-            canvas.rect(200, 10)
-                .move(664, y + 24)
+            if (fileContext) {
+                addText(canvas, fileContext, 64, y + 18, {
+                    size: 10,
+                    fill: '#64748b'
+                });
+            }
+            canvas.rect(700, 10)
+                .move(64, y + 24)
                 .radius(5)
                 .fill('#0f172a');
             canvas.rect(Math.max(barWidth, 10), 10)
-                .move(664, y + 24)
+                .move(64, y + 24)
                 .radius(5)
                 .fill('#8b5cf6');
-            addText(canvas, `${formatCompactNumber(file.score)} score`, 664, y + 40, {
+            addText(canvas, `${formatCompactNumber(file.lines)} lines • ${formatCompactNumber(file.score)} score`, 64, y + 40, {
                 size: 11,
                 fill: '#64748b'
             });
