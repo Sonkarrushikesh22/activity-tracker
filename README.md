@@ -1,12 +1,12 @@
 # Code Activity Tracker
 
-## Overview
-Automatically tracks and visualizes your coding activity across different projects.
+## Purpose
+This repository is the data and visualization engine for GitHub Activity Monitor.
 
-## Structure
-- /projects - Contains activity logs for each project
-- /visualizations - Contains generated activity visualizations
-- /.github - Contains automation workflows and scripts
+## What lives here
+- /projects - Per-project activity logs captured from local development
+- /visualizations - Generated SVG assets for profile display
+- /.github - Automation scripts and workflows for keeping visuals fresh
 
-## Latest Activity
-Activity tracking will begin shortly after repository initialization.
+## Profile integration
+Your GitHub profile README should embed the SVGs from this repository instead of storing raw logs directly in the profile repo.
