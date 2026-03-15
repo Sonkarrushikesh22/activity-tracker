@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+const ACTIVITY_REPO = 'activity-tracker';
+const PROFILE_REPO = 'Sonkarrushikesh22';
 const https = require('https');
 
 async function updateProfile() {
@@ -17,30 +17,33 @@ async function updateProfile() {
         const username = await getAuthenticatedUsername(process.env.GITHUB_TOKEN);
         console.log(`Authenticated username: ${username}`);
         
-        // Construct the correct URL for visualizations from the activity-tracker repo
-        const visualizationsUrl = `https://raw.githubusercontent.com/${username}/activity-tracker/main`;
+        const visualizationsUrl = `https://raw.githubusercontent.com/${username}/${ACTIVITY_REPO}/main/visualizations`;
         console.log(`Visualizations URL: ${visualizationsUrl}`);
         
         const content = [
-            '# Coding Activity Overview',
+            `# ${username}`,
             '',
-            '## Recent Coding Activity',
+            '## Coding Activity',
+            '',
+            'This profile uses a dedicated activity repository to store logs and generated profile visuals.',
+            '',
+            `Data source: https://github.com/${username}/${ACTIVITY_REPO}`,
             '',
             '### Activity Heatmap',
-            `![Activity Heatmap](${visualizationsUrl}/visualizations/heatmap.svg)`,
+            `![Activity Heatmap](${visualizationsUrl}/heatmap.svg)`,
             '',
-            '### Project Activity',
-            `![Project Activity](${visualizationsUrl}/visualizations/activity-chart.svg)`,
+            '### Project Progress',
+            `![Project Activity](${visualizationsUrl}/activity-chart.svg)`,
             '',
-            `Last updated: ${new Date().toUTCString()}`
+            `Last setup sync: ${new Date().toUTCString()}`
         ].join('\n');
         console.log('Generated README content');
 
         // Update the profile README
-        const currentContent = await getRepoContent(username, username, 'README.md');
+        const currentContent = await getRepoContent(username, PROFILE_REPO, 'README.md');
         await updateRepoContent(
             username,
-            username,
+            PROFILE_REPO,
             'README.md',
             'Update coding activity visualizations',
             content,
