@@ -1,6 +1,368 @@
 const fs = require('fs');
 const path = require('path');
 
+function getDateKey(value) {
+    return new Date(value).toISOString().split('T')[0];
+}
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+}
+
+function formatCompactNumber(value) {
+    return Intl.NumberFormat('en-US', { notation: 'compact' }).format(value);
+}
+
+function trimLabel(label, maxLength = 18) {
+    return label.length <= maxLength
+        ? label
+        : `${label.slice(0, maxLength - 1)}...`;
+}
+
+function createCanvasFactory(createSVGWindow, SVG, registerWindow) {
+    return (width, height) => {
+        const window = createSVGWindow();
+        const document = window.document;
+        registerWindow(window, document);
+
+        const canvas = SVG(document.documentElement);
+        canvas.size(width, height);
+        canvas.viewbox(0, 0, width, height);
+        canvas.rect(width, height).fill('#0f172a');
+        return canvas;
+    };
+}
+
+function loadActivityLogs(projectsDir) {
+    let allActivity = [];
+
+    if (!fs.existsSync(projectsDir)) {
+        return allActivity;
+    }
+
+    const projects = fs.readdirSync(projectsDir)
+        .filter(file => fs.statSync(path.join(projectsDir, file)).isDirectory());
+
+    for (const project of projects) {
+        const logPath = path.join(projectsDir, project, 'activity-log.json');
+        if (!fs.existsSync(logPath)) {
+            continue;
+        }
+
+        try {
+            const logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
+            allActivity = allActivity.concat(logs);
+        } catch (error) {
+            console.warn(`Warning: Could not parse log file for project ${project}:`, error);
+        }
+    }
+
+    return allActivity;
+}
+
+function aggregateActivity(allActivity) {
+    const activityByDate = new Map();
+    const projectStats = new Map();
+    const languageStats = new Map();
+
+    for (const entry of allActivity) {
+        const dateKey = getDateKey(entry.timestamp);
+        const score = entry.metrics?.activityScore || 1;
+        const lineImpact = (
+            (entry.metrics?.addedLines || 0) +
+            (entry.metrics?.removedLines || 0) +
+            (entry.metrics?.modifiedLines || 0)
+        );
+        const projectName = entry.project || 'Unknown';
+        const languageName = entry.language || 'plain-text';
+
+        activityByDate.set(dateKey, (activityByDate.get(dateKey) || 0) + score);
+
+        const projectEntry = projectStats.get(projectName) || {
+            name: projectName,
+            score: 0,
+            saves: 0,
+            lines: 0
+        };
+        projectEntry.score += score;
+        projectEntry.saves += 1;
+        projectEntry.lines += lineImpact;
+        projectStats.set(projectName, projectEntry);
+
+        const languageEntry = languageStats.get(languageName) || {
+            name: languageName,
+            score: 0,
+            saves: 0
+        };
+        languageEntry.score += score;
+        languageEntry.saves += 1;
+        languageStats.set(languageName, languageEntry);
+    }
+
+    const sortedProjects = Array.from(projectStats.values())
+        .sort((left, right) => right.score - left.score);
+    const sortedLanguages = Array.from(languageStats.values())
+        .sort((left, right) => right.score - left.score);
+    const totalLinesChanged = allActivity.reduce((sum, entry) => (
+        sum +
+        (entry.metrics?.addedLines || 0) +
+        (entry.metrics?.removedLines || 0) +
+        (entry.metrics?.modifiedLines || 0)
+    ), 0);
+
+    const now = new Date();
+    const today = new Date(Date.UTC(
+        now.getUTCFullYear(),
+        now.getUTCMonth(),
+        now.getUTCDate()
+    ));
+
+    let currentStreak = 0;
+    for (let offset = 0; offset < 365; offset += 1) {
+        const date = new Date(today);
+        date.setUTCDate(today.getUTCDate() - offset);
+        if (activityByDate.has(getDateKey(date))) {
+            currentStreak += 1;
+        } else if (offset > 0) {
+            break;
+        }
+    }
+
+    return {
+        activityByDate,
+        sortedProjects,
+        sortedLanguages,
+        totalSessions: allActivity.length,
+        activeDays: activityByDate.size,
+        totalLinesChanged,
+        currentStreak,
+        today
+    };
+}
+
+function renderSummaryCard(createCanvas, metrics, visualizationsDir) {
+    const canvas = createCanvas(960, 160);
+    canvas.text('Coding Activity Snapshot')
+        .move(40, 24)
+        .font({ size: 24, family: 'Segoe UI', weight: '700' })
+        .fill('#f8fafc');
+    canvas.text('A compact overview generated from local VS Code activity logs.')
+        .move(40, 56)
+        .font({ size: 12, family: 'Segoe UI' })
+        .fill('#94a3b8');
+
+    const cards = [
+        { label: 'Tracked saves', value: formatCompactNumber(metrics.totalSessions), accent: '#38bdf8' },
+        { label: 'Active days', value: formatCompactNumber(metrics.activeDays), accent: '#22c55e' },
+        { label: 'Lines changed', value: formatCompactNumber(metrics.totalLinesChanged), accent: '#f97316' },
+        { label: 'Current streak', value: `${metrics.currentStreak} day${metrics.currentStreak === 1 ? '' : 's'}`, accent: '#facc15' }
+    ];
+
+    cards.forEach((card, index) => {
+        const x = 40 + (index * 220);
+        canvas.rect(200, 68)
+            .move(x, 84)
+            .radius(14)
+            .fill('#111c35')
+            .stroke({ color: '#1e293b', width: 1 });
+        canvas.rect(6, 40)
+            .move(x + 16, 98)
+            .radius(3)
+            .fill(card.accent);
+        canvas.text(card.value)
+            .move(x + 34, 94)
+            .font({ size: 22, family: 'Segoe UI', weight: '700' })
+            .fill('#f8fafc');
+        canvas.text(card.label)
+            .move(x + 34, 124)
+            .font({ size: 12, family: 'Segoe UI' })
+            .fill('#94a3b8');
+    });
+
+    fs.writeFileSync(path.join(visualizationsDir, 'summary-card.svg'), canvas.svg());
+}
+
+function renderHeatmap(createCanvas, metrics, visualizationsDir) {
+    const canvas = createCanvas(960, 240);
+    canvas.text('Activity Heatmap')
+        .move(40, 24)
+        .font({ size: 24, family: 'Segoe UI', weight: '700' })
+        .fill('#f8fafc');
+    canvas.text('Daily activity score across the last 52 weeks.')
+        .move(40, 56)
+        .font({ size: 12, family: 'Segoe UI' })
+        .fill('#94a3b8');
+
+    const palette = ['#0f172a', '#123524', '#166534', '#22c55e', '#86efac'];
+    const cellSize = 12;
+    const cellGap = 4;
+    const gridLeft = 72;
+    const gridTop = 96;
+    const weeks = 53;
+    const gridStart = new Date(metrics.today);
+    gridStart.setUTCDate(metrics.today.getUTCDate() - ((weeks * 7) - 1));
+    const maxDayScore = Math.max(...metrics.activityByDate.values(), 1);
+    const monthLabels = new Set();
+
+    ['Mon', 'Wed', 'Fri'].forEach((label, index) => {
+        canvas.text(label)
+            .move(24, gridTop + 2 + (index * 2 * (cellSize + cellGap)))
+            .font({ size: 11, family: 'Segoe UI' })
+            .fill('#64748b');
+    });
+
+    for (let weekIndex = 0; weekIndex < weeks; weekIndex += 1) {
+        for (let dayIndex = 0; dayIndex < 7; dayIndex += 1) {
+            const date = new Date(gridStart);
+            date.setUTCDate(gridStart.getUTCDate() + (weekIndex * 7) + dayIndex);
+            const dateKey = getDateKey(date);
+            const score = metrics.activityByDate.get(dateKey) || 0;
+            const intensity = score === 0 ? 0 : clamp(Math.ceil((score / maxDayScore) * 4), 1, 4);
+            const x = gridLeft + (weekIndex * (cellSize + cellGap));
+            const y = gridTop + (dayIndex * (cellSize + cellGap));
+
+            canvas.rect(cellSize, cellSize)
+                .move(x, y)
+                .radius(4)
+                .fill(palette[intensity])
+                .stroke({ color: '#1e293b', width: 1 });
+
+            if (date.getUTCDate() === 1) {
+                const monthLabel = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+                const monthKey = `${monthLabel}-${weekIndex}`;
+                if (!monthLabels.has(monthKey)) {
+                    monthLabels.add(monthKey);
+                    canvas.text(monthLabel)
+                        .move(x, 78)
+                        .font({ size: 11, family: 'Segoe UI' })
+                        .fill('#64748b');
+                }
+            }
+        }
+    }
+
+    canvas.text('Less')
+        .move(780, 212)
+        .font({ size: 11, family: 'Segoe UI' })
+        .fill('#94a3b8');
+    palette.forEach((color, index) => {
+        canvas.rect(12, 12)
+            .move(814 + (index * 18), 210)
+            .radius(4)
+            .fill(color)
+            .stroke({ color: '#1e293b', width: 1 });
+    });
+    canvas.text('More')
+        .move(910, 212)
+        .font({ size: 11, family: 'Segoe UI' })
+        .fill('#94a3b8');
+
+    fs.writeFileSync(path.join(visualizationsDir, 'heatmap.svg'), canvas.svg());
+}
+
+function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
+    const canvas = createCanvas(960, 420);
+    canvas.text('Project Progress')
+        .move(40, 24)
+        .font({ size: 24, family: 'Segoe UI', weight: '700' })
+        .fill('#f8fafc');
+    canvas.text('Top projects by activity score, plus your most-used languages.')
+        .move(40, 56)
+        .font({ size: 12, family: 'Segoe UI' })
+        .fill('#94a3b8');
+
+    canvas.rect(560, 260)
+        .move(40, 100)
+        .radius(16)
+        .fill('#111c35')
+        .stroke({ color: '#1e293b', width: 1 });
+    canvas.rect(280, 260)
+        .move(640, 100)
+        .radius(16)
+        .fill('#111c35')
+        .stroke({ color: '#1e293b', width: 1 });
+
+    canvas.text('Top projects')
+        .move(64, 122)
+        .font({ size: 16, family: 'Segoe UI', weight: '700' })
+        .fill('#f8fafc');
+    canvas.text('Top languages')
+        .move(664, 122)
+        .font({ size: 16, family: 'Segoe UI', weight: '700' })
+        .fill('#f8fafc');
+
+    const topProjects = metrics.sortedProjects.slice(0, 6);
+    const maxProjectScore = Math.max(...topProjects.map(project => project.score), 1);
+
+    if (topProjects.length === 0) {
+        canvas.text('No activity yet. Save files locally to populate this chart.')
+            .move(64, 176)
+            .font({ size: 14, family: 'Segoe UI' })
+            .fill('#94a3b8');
+    } else {
+        topProjects.forEach((project, index) => {
+            const y = 154 + (index * 34);
+            const barWidth = (project.score / maxProjectScore) * 360;
+
+            canvas.text(trimLabel(project.name, 24))
+                .move(64, y)
+                .font({ size: 13, family: 'Segoe UI', weight: '600' })
+                .fill('#e2e8f0');
+            canvas.text(`${project.saves} saves`)
+                .move(460, y)
+                .font({ size: 12, family: 'Segoe UI' })
+                .fill('#94a3b8');
+
+            canvas.rect(420, 10)
+                .move(64, y + 18)
+                .radius(5)
+                .fill('#0f172a');
+            canvas.rect(Math.max(barWidth, 10), 10)
+                .move(64, y + 18)
+                .radius(5)
+                .fill('#38bdf8');
+            canvas.text(`${formatCompactNumber(project.score)} score • ${formatCompactNumber(project.lines)} lines`)
+                .move(64, y + 30)
+                .font({ size: 11, family: 'Segoe UI' })
+                .fill('#64748b');
+        });
+    }
+
+    const topLanguages = metrics.sortedLanguages.slice(0, 5);
+    const maxLanguageScore = Math.max(...topLanguages.map(language => language.score), 1);
+
+    if (topLanguages.length === 0) {
+        canvas.text('Language data appears after the first tracked saves.')
+            .move(664, 176)
+            .font({ size: 13, family: 'Segoe UI' })
+            .fill('#94a3b8');
+    } else {
+        topLanguages.forEach((language, index) => {
+            const y = 154 + (index * 38);
+            const barWidth = (language.score / maxLanguageScore) * 180;
+
+            canvas.text(trimLabel(language.name, 18))
+                .move(664, y)
+                .font({ size: 13, family: 'Segoe UI', weight: '600' })
+                .fill('#e2e8f0');
+            canvas.rect(200, 10)
+                .move(664, y + 18)
+                .radius(5)
+                .fill('#0f172a');
+            canvas.rect(Math.max(barWidth, 10), 10)
+                .move(664, y + 18)
+                .radius(5)
+                .fill('#22c55e');
+            canvas.text(`${language.saves} saves`)
+                .move(664, y + 30)
+                .font({ size: 11, family: 'Segoe UI' })
+                .fill('#64748b');
+        });
+    }
+
+    fs.writeFileSync(path.join(visualizationsDir, 'activity-chart.svg'), canvas.svg());
+}
+
 async function generateVisualizations() {
     try {
         const [svgdomModule, svgjsModule] = await Promise.all([
@@ -10,110 +372,21 @@ async function generateVisualizations() {
 
         const { createSVGWindow } = svgdomModule;
         const { SVG, registerWindow } = svgjsModule;
+        const createCanvas = createCanvasFactory(createSVGWindow, SVG, registerWindow);
 
-        // Set up the SVG.js window environment
-        const window = createSVGWindow();
-        const document = window.document;
-        registerWindow(window, document);
-
-        // Load activity data
         const projectsDir = path.join(process.cwd(), 'projects');
-        let allActivity = [];
-
-        if (fs.existsSync(projectsDir)) {
-            const projects = fs.readdirSync(projectsDir)
-                .filter(file => fs.statSync(path.join(projectsDir, file)).isDirectory());
-
-            for (const project of projects) {
-                const logPath = path.join(projectsDir, project, 'activity-log.json');
-                if (fs.existsSync(logPath)) {
-                    try {
-                        const logs = JSON.parse(fs.readFileSync(logPath, 'utf8'));
-                        allActivity = allActivity.concat(logs);
-                    } catch (err) {
-                        console.warn(`Warning: Could not parse log file for project ${project}:`, err);
-                    }
-                }
-            }
-        }
-
-        // Create visualizations directory
         const visualizationsDir = path.join(process.cwd(), 'visualizations');
+
         if (!fs.existsSync(visualizationsDir)) {
             fs.mkdirSync(visualizationsDir, { recursive: true });
         }
 
-        // Generate Heatmap
-        const heatmapCanvas = SVG(document.documentElement);
-        heatmapCanvas.size(800, 200);
+        const allActivity = loadActivityLogs(projectsDir);
+        const metrics = aggregateActivity(allActivity);
 
-        // Process activity data for heatmap
-        const activityByDate = new Map();
-        allActivity.forEach(entry => {
-            const date = new Date(entry.timestamp).toISOString().split('T')[0];
-            activityByDate.set(date, (activityByDate.get(date) || 0) + 1);
-        });
-
-        const maxActivity = Math.max(...activityByDate.values(), 1);
-        Array.from(activityByDate.values()).forEach((count, i) => {
-            const cellSize = 10;
-            const cellPadding = 2;
-            const x = (i % 52) * (cellSize + cellPadding) + 20;
-            const y = Math.floor(i / 52) * (cellSize + cellPadding) + 20;
-            const intensity = count / maxActivity;
-            
-            heatmapCanvas
-                .rect(cellSize, cellSize)
-                .move(x, y)
-                .fill(`rgb(0,${Math.floor(intensity * 155)},${Math.floor(intensity * 255)})`)
-                .radius(2);
-        });
-
-        // Save heatmap
-        fs.writeFileSync(
-            path.join(visualizationsDir, 'heatmap.svg'),
-            heatmapCanvas.svg()
-        );
-
-        // Generate Activity Chart
-        const chartCanvas = SVG(document.documentElement);
-        chartCanvas.size(800, 300);
-
-        // Process project data
-        const projectActivity = new Map();
-        allActivity.forEach(entry => {
-            projectActivity.set(entry.project, (projectActivity.get(entry.project) || 0) + 1);
-        });
-
-        const projectData = Array.from(projectActivity.entries())
-            .map(([name, activity]) => ({ name, activity }));
-
-        const barWidth = 40;
-        const barGap = 20;
-        const maxProjectActivity = Math.max(...projectData.map(p => p.activity), 1);
-
-        projectData.forEach((project, i) => {
-            const height = (project.activity / maxProjectActivity) * 200;
-            const x = i * (barWidth + barGap) + 50;
-            const y = 250 - height;
-
-            chartCanvas
-                .rect(barWidth, height)
-                .move(x, y)
-                .fill('#4A90E2')
-                .radius(4);
-
-            chartCanvas
-                .text(project.name)
-                .move(x + barWidth/2, 260)
-                .font({ size: 12, anchor: 'middle' });
-        });
-
-        // Save activity chart
-        fs.writeFileSync(
-            path.join(visualizationsDir, 'activity-chart.svg'),
-            chartCanvas.svg()
-        );
+        renderSummaryCard(createCanvas, metrics, visualizationsDir);
+        renderHeatmap(createCanvas, metrics, visualizationsDir);
+        renderProjectDashboard(createCanvas, metrics, visualizationsDir);
 
         console.log('Visualizations generated successfully');
     } catch (error) {
@@ -122,10 +395,8 @@ async function generateVisualizations() {
     }
 }
 
-// Export for CommonJS
 module.exports = { generateVisualizations };
 
-// Call if running directly
 if (require.main === module) {
     generateVisualizations().catch(error => {
         console.error('Failed to generate visualizations:', error);
