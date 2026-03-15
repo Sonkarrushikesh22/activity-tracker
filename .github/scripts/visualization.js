@@ -332,8 +332,8 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
 }
 
 function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
-    const canvas = createCanvas(960, 620);
-    canvas.rect(880, 556)
+    const canvas = createCanvas(960, 668);
+    canvas.rect(880, 604)
         .move(40, 32)
         .radius(18)
         .fill('#111c35')
@@ -347,26 +347,29 @@ function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
         fill: '#94a3b8'
     });
 
-    addText(canvas, 'Top projects', 64, 120, {
+    addText(canvas, 'Top projects', 64, 126, {
         size: 16,
         weight: '700'
     });
-    addText(canvas, 'Recent files', 64, 372, {
+    addText(canvas, 'Recent files', 64, 392, {
         size: 16,
         weight: '700'
     });
+
+    canvas.line(64, 354, 896, 354)
+        .stroke({ color: '#22304f', width: 1 });
 
     const topProjects = metrics.sortedProjects.slice(0, 3);
     const maxProjectScore = Math.max(...topProjects.map(project => project.score), 1);
 
     if (topProjects.length === 0) {
-        addText(canvas, 'No activity yet. Save files locally to populate this chart.', 64, 160, {
+        addText(canvas, 'No activity yet. Save files locally to populate this chart.', 64, 172, {
             size: 14,
             fill: '#94a3b8'
         });
     } else {
         topProjects.forEach((project, index) => {
-            const y = 138 + (index * 72);
+            const y = 164 + (index * 74);
             const barWidth = (project.score / maxProjectScore) * 640;
 
             canvas.rect(832, 56)
@@ -403,13 +406,13 @@ function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
     const maxFileScore = Math.max(...topFiles.map(file => file.score), 1);
 
     if (topFiles.length === 0) {
-        addText(canvas, 'File activity appears after the first tracked saves.', 64, 412, {
+        addText(canvas, 'File activity appears after the first tracked saves.', 64, 434, {
             size: 13,
             fill: '#94a3b8'
         });
     } else {
         topFiles.forEach((file, index) => {
-            const y = 390 + (index * 72);
+            const y = 430 + (index * 74);
             const barWidth = (file.score / maxFileScore) * 640;
             const fileName = trimLabel(getFileDisplayName(file.name), 18);
             const fileContext = getFileContext(file.name);
