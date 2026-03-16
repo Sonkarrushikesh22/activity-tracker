@@ -19,6 +19,14 @@ function trimLabel(label, maxLength = 18) {
         : `${label.slice(0, maxLength - 1)}...`;
 }
 
+function escapeMarkdownCell(value) {
+    return String(value).replace(/\|/g, '\\|');
+}
+
+function escapeMermaidLabel(value) {
+    return String(value).replace(/"/g, '\\"');
+}
+
 function getFileDisplayName(label) {
     const normalized = label.replace(/\\/g, '/');
     return path.posix.basename(normalized) || normalized;
@@ -38,7 +46,7 @@ function getFileContext(label) {
 function addText(canvas, text, x, y, options = {}) {
     const {
         size = 12,
-        family = 'Segoe UI',
+        family = 'DejaVu Sans',
         weight = '400',
         fill = '#f8fafc'
     } = options;
@@ -80,6 +88,89 @@ function createCanvasFactory(createSVGWindow, SVG, registerWindow) {
         canvas.rect(width, height).fill('#0f172a');
         return canvas;
     };
+}
+
+async function writeVisualization(canvas, visualizationsDir, baseName, Resvg) {
+    const svgContent = canvas.svg();
+    fs.writeFileSync(path.join(visualizationsDir, `${baseName}.svg`), svgContent);
+
+    if (!Resvg) {
+        return;
+    }
+
+    const rendered = new Resvg(svgContent, {
+        fitTo: {
+            mode: 'original'
+        }
+    }).render();
+
+    fs.writeFileSync(path.join(visualizationsDir, `${baseName}.png`), rendered.asPng());
+}
+
+function renderMarkdownSummary(metrics, visualizationsDir) {
+    const topProjects = metrics.sortedProjects.slice(0, 5);
+    const topFiles = metrics.sortedFiles.slice(0, 5);
+    const mermaidLines = topProjects.length > 0
+        ? [
+            '```mermaid',
+            'pie showData',
+            '    title Activity score by top projects',
+            ...topProjects.map(project => `    "${escapeMermaidLabel(project.name)}" : ${Math.max(project.score, 1)}`),
+            '```'
+        ]
+        : ['_Mermaid project breakdown appears after the first tracked saves._'];
+
+    const content = [
+        '# Activity Visualizations',
+        '',
+        'PNG assets are generated for profile display. SVG versions remain here for debugging and iteration.',
+        '',
+        '## Quick Stats',
+        '',
+        '| Metric | Value |',
+        '| --- | ---: |',
+        `| Tracked saves | ${formatCompactNumber(metrics.totalSessions)} |`,
+        `| Active days | ${formatCompactNumber(metrics.activeDays)} |`,
+        `| Lines changed | ${formatCompactNumber(metrics.totalLinesChanged)} |`,
+        `| Current streak | ${metrics.currentStreak} |`,
+        '',
+        '## Top Projects',
+        '',
+        '| Project | Saves | Lines changed | Score |',
+        '| --- | ---: | ---: | ---: |',
+        ...(topProjects.length > 0
+            ? topProjects.map(project => (
+                `| ${escapeMarkdownCell(project.name)} | ${project.saves} | ${formatCompactNumber(project.lines)} | ${formatCompactNumber(project.score)} |`
+            ))
+            : ['| No tracked activity yet | 0 | 0 | 0 |']),
+        '',
+        '## Top Files',
+        '',
+        '| File | Saves | Lines changed | Score |',
+        '| --- | ---: | ---: | ---: |',
+        ...(topFiles.length > 0
+            ? topFiles.map(file => (
+                `| ${escapeMarkdownCell(getFileDisplayName(file.name))} | ${file.saves} | ${formatCompactNumber(file.lines)} | ${formatCompactNumber(file.score)} |`
+            ))
+            : ['| No tracked activity yet | 0 | 0 | 0 |']),
+        '',
+        '## Mermaid Snapshot',
+        '',
+        ...mermaidLines,
+        '',
+        '## Rendered Assets',
+        '',
+        '### Summary',
+        '![Activity Summary](./summary-card.png)',
+        '',
+        '### Heatmap',
+        '![Activity Heatmap](./heatmap.png)',
+        '',
+        '### Project Progress',
+        '![Project Progress](./activity-chart.png)'
+    ].join('\n');
+
+    fs.writeFileSync(path.join(visualizationsDir, 'README.md'), content);
 }
 
 function loadActivityLogs(projectsDir) {
@@ -206,7 +297,7 @@ function aggregateActivity(allActivity) {
     };
 }
 
-function renderSummaryCard(createCanvas, metrics, visualizationsDir) {
+async function renderSummaryCard(createCanvas, metrics, visualizationsDir, Resvg) {
     const canvas = createCanvas(960, 160);
     addText(canvas, 'Coding Activity Snapshot', 40, 24, {
         size: 24,
@@ -245,10 +336,10 @@ function renderSummaryCard(createCanvas, metrics, visualizationsDir) {
         });
     });
 
-    fs.writeFileSync(path.join(visualizationsDir, 'summary-card.svg'), canvas.svg());
+    await writeVisualization(canvas, visualizationsDir, 'summary-card', Resvg);
 }
 
-function renderHeatmap(createCanvas, metrics, visualizationsDir) {
+async function renderHeatmap(createCanvas, metrics, visualizationsDir, Resvg) {
     const canvas = createCanvas(960, 260);
     canvas.rect(880, 196)
         .move(40, 32)
@@ -328,10 +419,10 @@ function renderHeatmap(createCanvas, metrics, visualizationsDir) {
         fill: '#94a3b8'
     });
 
-    fs.writeFileSync(path.join(visualizationsDir, 'heatmap.svg'), canvas.svg());
+    await writeVisualization(canvas, visualizationsDir, 'heatmap', Resvg);
 }
 
-function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
+async function renderProjectDashboard(createCanvas, metrics, visualizationsDir, Resvg) {
     const topProjects = metrics.sortedProjects.slice(0, 3);
     const topFiles = metrics.sortedFiles.slice(0, 3);
     const projectRowGap = 74;
@@ -467,18 +558,20 @@ function renderProjectDashboard(createCanvas, metrics, visualizationsDir) {
         });
     }
 
-    fs.writeFileSync(path.join(visualizationsDir, 'activity-chart.svg'), canvas.svg());
+    await writeVisualization(canvas, visualizationsDir, 'activity-chart', Resvg);
 }
 
 async function generateVisualizations() {
     try {
-        const [svgdomModule, svgjsModule] = await Promise.all([
+        const [svgdomModule, svgjsModule, resvgModule] = await Promise.all([
             import('svgdom'),
-            import('@svgdotjs/svg.js')
+            import('@svgdotjs/svg.js'),
+            import('@resvg/resvg-js')
         ]);
 
         const { createSVGWindow } = svgdomModule;
         const { SVG, registerWindow } = svgjsModule;
+        const { Resvg } = resvgModule;
         const createCanvas = createCanvasFactory(createSVGWindow, SVG, registerWindow);
 
         const projectsDir = path.join(process.cwd(), 'projects');
@@ -491,9 +584,10 @@ async function generateVisualizations() {
         const allActivity = loadActivityLogs(projectsDir);
         const metrics = aggregateActivity(allActivity);
 
-        renderSummaryCard(createCanvas, metrics, visualizationsDir);
-        renderHeatmap(createCanvas, metrics, visualizationsDir);
-        renderProjectDashboard(createCanvas, metrics, visualizationsDir);
+        await renderSummaryCard(createCanvas, metrics, visualizationsDir, Resvg);
+        await renderHeatmap(createCanvas, metrics, visualizationsDir, Resvg);
+        await renderProjectDashboard(createCanvas, metrics, visualizationsDir, Resvg);
+        renderMarkdownSummary(metrics, visualizationsDir);
 
         console.log('Visualizations generated successfully');
     } catch (error) {
