@@ -19,6 +19,7 @@ async function updateProfile() {
         
         const cacheBust = Date.now();
         const visualizationsUrl = `https://raw.githubusercontent.com/${username}/${ACTIVITY_REPO}/main/visualizations`;
+        const visualizationsPageUrl = `https://github.com/${username}/${ACTIVITY_REPO}/tree/main/visualizations`;
         console.log(`Visualizations URL: ${visualizationsUrl}`);
         
         const content = [
@@ -30,13 +31,15 @@ async function updateProfile() {
             '',
             `Data source: https://github.com/${username}/${ACTIVITY_REPO}`,
             '',
-            `![Activity Summary](${visualizationsUrl}/summary-card.svg?ts=${cacheBust})`,
+            `Markdown breakdown: ${visualizationsPageUrl}`,
+            '',
+            `![Activity Summary](${visualizationsUrl}/summary-card.png?ts=${cacheBust})`,
             '',
             '### Activity Heatmap',
-            `![Activity Heatmap](${visualizationsUrl}/heatmap.svg?ts=${cacheBust})`,
+            `![Activity Heatmap](${visualizationsUrl}/heatmap.png?ts=${cacheBust})`,
             '',
             '### Project Progress',
-            `![Project Activity](${visualizationsUrl}/activity-chart.svg?ts=${cacheBust})`,
+            `![Project Activity](${visualizationsUrl}/activity-chart.png?ts=${cacheBust})`,
             '',
             `Last setup sync: ${new Date().toUTCString()}`
         ].join('\n');
