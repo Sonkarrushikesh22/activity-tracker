@@ -9,7 +9,7 @@ PNG assets are generated for profile display. SVG versions remain here for debug
 | Tracked saves | 105 |
 | Active days | 3 |
 | Lines changed | 65K |
-| Current streak | 2 |
+| Current streak | 0 |
 
 ## Top Projects
 
